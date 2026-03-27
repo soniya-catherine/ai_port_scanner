@@ -1,7 +1,7 @@
 import socket
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from services import COMMON_PORTS
+from core.services import COMMON_PORTS
 
 # Resolves hostname to its IP address
 def resolve_target(target):
