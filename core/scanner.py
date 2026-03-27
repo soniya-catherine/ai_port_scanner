@@ -31,8 +31,11 @@ def scan_single_port(target, port, timeout=0.5):
     return None
 
 # Scans a range of ports using multiple threads
-def scan_port_range(target, start_port, end_port, timeout=0.5, max_workers=100):
+def scan_port_range(target, start_port, end_port, timeout=0.5, max_workers=100, progress_callback=None):
     results = []
+    total_ports = end_port - start_port + 1
+    completed_ports = 0
+
 
     # Create a thread pool to scan ports concurrently
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -43,9 +46,14 @@ def scan_port_range(target, start_port, end_port, timeout=0.5, max_workers=100):
 
         # Collect results as each scan completes
         for future in as_completed(future_to_port):
+            completed_ports += 1
+
             result = future.result()
             if result:
                 results.append(result)
+
+            if progress_callback:
+                progress_callback(completed_ports, total_ports)
 
     # Sort results by port number before returning
     results.sort(key=lambda item: item["port"])

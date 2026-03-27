@@ -9,6 +9,7 @@ from core.explainer import get_explanation_report, has_hf_token
 
 st.set_page_config(page_title="AI Port Scanner", page_icon="assets/favicon.png", layout="wide")
 
+st.image("assets/favicon.png", width=64)
 st.title("AI-Assisted Port Scanner")
 st.write("Scan a target host for open TCP ports and get simple security-focused explanations.")
 
@@ -17,8 +18,8 @@ with st.sidebar:
     target = st.text_input("Target IP or Hostname", value="scanme.nmap.org")
     start_port = st.number_input("Start Port", min_value=1, max_value=65535, value=1, step=1)
     end_port = st.number_input("End Port", min_value=1, max_value=65535, value=1024, step=1)
-    timeout = st.slider("Timeout (seconds)", min_value=0.1, max_value=2.0, value=0.5, step=0.1)
-    max_workers = st.slider("Max Worker Threads", min_value=10, max_value=300, value=100, step=10)
+    timeout = st.slider("Timeout (seconds)", min_value=0.1, max_value=2.0, value=0.5, step=0.1, help="Maximum time to wait for a connection attempt on each port. If exceeded, port marked as closed or filtered.")
+    max_workers = st.slider("Max Worker Threads", min_value=10, max_value=500, value=100, step=10,help="Controls how many ports are scanned at the same time. Higher values can make scans faster, but may use more system and network resources.")
 
     st.divider()
     st.header("Explanation Settings")
@@ -45,13 +46,26 @@ if scan_button:
             st.info(f"Resolved target: {target} → {resolved_ip}")
 
             with st.spinner("Scanning ports..."):
+                total_ports = int(end_port) - int(start_port) + 1
+                progress_bar = st.progress(0)
+                progress_text = st.empty()
+
+                def update_progress(completed, total):
+                    percent = int((completed / total) * 100)
+                    progress_bar.progress(percent)
+                    progress_text.text(f"Scanning progress: {completed}/{total} ports checked ({percent}%)")
+
                 raw_results = scan_port_range(
                     target=resolved_ip,
                     start_port=int(start_port),
                     end_port=int(end_port),
                     timeout=float(timeout),
                     max_workers=int(max_workers),
+                    progress_callback=update_progress,
                 )
+
+                progress_bar.progress(100)
+                progress_text.text(f"Scan complete: {total_ports}/{total_ports} ports checked (100%)")
 
             st.subheader("Scan Results")
 
