@@ -7,9 +7,9 @@ from core.scanner import resolve_target, scan_port_range
 from core.explainer import get_explanation_report, has_hf_token
 
 # Configure Streamlit page 
-st.set_page_config(page_title="AI Port Scanner", page_icon="assets/favicon.png", layout="wide")
+st.set_page_config(page_title="AI Port Scanner", page_icon="assets/logo.png", layout="wide")
 
-st.image("assets/favicon.png", width=64)
+st.image("assets/logo.png", width=64)
 st.title("AI-Assisted Port Scanner")
 st.write("Scan a target host for open TCP ports and get simple security-focused explanations.")
 
