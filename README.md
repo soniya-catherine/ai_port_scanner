@@ -32,7 +32,7 @@ git clone https://github.com/soniya-catherine/ai-port-scanner
 cd ai-port-scanner
 ```
 
-**Windows**
+**Windows CMD**
 ```bash
 # Create and activate a virtual environment
 python -m venv venv
