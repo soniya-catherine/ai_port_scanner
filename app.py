@@ -6,13 +6,14 @@ import streamlit as st
 from core.scanner import resolve_target, scan_port_range
 from core.explainer import get_explanation_report, has_hf_token
 
-
+# Configure Streamlit page 
 st.set_page_config(page_title="AI Port Scanner", page_icon="assets/favicon.png", layout="wide")
 
 st.image("assets/favicon.png", width=64)
 st.title("AI-Assisted Port Scanner")
 st.write("Scan a target host for open TCP ports and get simple security-focused explanations.")
 
+# Sidebar controls for scan and explanation settings.
 with st.sidebar:
     st.header("Scan Settings")
     target = st.text_input("Target IP or Hostname", value="scanme.nmap.org")
@@ -25,6 +26,7 @@ with st.sidebar:
     st.header("Explanation Settings")
     use_ai = st.checkbox("Use Hugging Face AI explanation if available", value=True)
 
+     # Show whether AI mode can be used.
     if has_hf_token():
         st.success("HF_TOKEN detected. AI mode is available.")
     else:
@@ -35,6 +37,7 @@ with st.sidebar:
 
 scan_button = st.button("Start Scan")
 
+# Start the scan only after basic input checks.
 if scan_button:
     if not target.strip():
         st.error("Please enter a target IP address or hostname.")
@@ -42,6 +45,7 @@ if scan_button:
         st.error("Start Port cannot be greater than End Port.")
     else:
         try:
+            # Resolve target before scanning
             resolved_ip = resolve_target(target)
             st.info(f"Resolved target: {target} → {resolved_ip}")
 
@@ -50,6 +54,7 @@ if scan_button:
                 progress_bar = st.progress(0)
                 progress_text = st.empty()
 
+                # Update live scan progress in the UI.
                 def update_progress(completed, total):
                     percent = int((completed / total) * 100)
                     progress_bar.progress(percent)
@@ -70,6 +75,7 @@ if scan_button:
             st.subheader("Scan Results")
 
             if raw_results:
+                # Build report and enrich results for display
                 report_text, report_mode, enriched_results = get_explanation_report(
                     raw_results=raw_results,
                     target_name=target,
@@ -102,6 +108,7 @@ if scan_button:
 
                 st.subheader("Generated Report")
 
+                # Adjust download name based on the report source
                 if report_mode == "ai":
                     st.success("This report was generated using Hugging Face AI.")
                     download_name = "ai_scan_report.txt"
@@ -121,5 +128,6 @@ if scan_button:
             else:
                 st.warning("No open ports found in the selected range.")
 
+        # Show error message if scan fails.
         except Exception as error:
             st.error(f"An error occurred: {error}")

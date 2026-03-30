@@ -4,11 +4,14 @@ from typing import List, Dict, Tuple
 from core.port_data import PORT_EXPLANATIONS
 from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
+
+#load values from .env file
 load_dotenv()
 
+# default model unless set in environment 
 DEFAULT_MODEL = os.getenv("HF_MODEL", "Qwen/Qwen2.5-7B-Instruct")
 
-
+# simple risk label to open ports 
 def get_risk_level(port: int, service: str) -> str:
     high_risk_ports = {21, 23, 3389, 445, 1433, 1521, 3306, 5432, 5900, 6379}
     medium_risk_ports = {22, 25, 53, 80, 110, 123, 139, 143, 161, 389, 443, 587, 993, 995, 8080, 8443}
@@ -19,7 +22,7 @@ def get_risk_level(port: int, service: str) -> str:
         return "Medium"
     return "Low"
 
-
+# explaination for open ports 
 def explain_port_result(port: int, service: str) -> str:
     if port in PORT_EXPLANATIONS:
         return f"Port {port} is open. {PORT_EXPLANATIONS[port]}"
@@ -29,6 +32,7 @@ def explain_port_result(port: int, service: str) -> str:
     
     return f"Port {port} is open, but it is not in the common service list. It should be reviewed further."
 
+# practical recommendation for open ports 
 def get_recommendation(port: int, service: str) -> str:
     if port in {21, 23, 69}:
         return "Avoid exposing this service publicly. Replace it with a more secure alternative if possible."
@@ -47,7 +51,7 @@ def get_recommendation(port: int, service: str) -> str:
     else:
         return "Review whether this open port is necessary. If not, close it or restrict access."
 
-
+# extra explanation fields to each scan result
 def enrich_results(results: List[Dict]) -> List[Dict]:
     enriched = []
 
@@ -55,6 +59,7 @@ def enrich_results(results: List[Dict]) -> List[Dict]:
         port = item["port"]
         service = item["service"]
 
+        # Add explanation data used by the UI and report output.
         enriched_item = {
             "port": port,
             "service": service,
@@ -68,7 +73,7 @@ def enrich_results(results: List[Dict]) -> List[Dict]:
 
     return enriched
 
-
+# Built-in summary for the scan 
 def build_summary(results: List[Dict], target_label: str = "the target") -> str:
     if not results:
         return f"No open ports were found for {target_label} in the selected range."
@@ -95,12 +100,12 @@ def build_summary(results: List[Dict], target_label: str = "the target") -> str:
 
     return "\n".join(lines)
 
-
+# Check whether Hugging Face token is available
 def has_hf_token() -> bool:
     token = os.getenv("HF_TOKEN", "").strip()
     return bool(token)
 
-
+# prepare structured messages for the Hugging Face chat model.
 def build_ai_messages(results: List[Dict], target_name: str, resolved_ip: str) -> List[Dict]:
     prompt_data = []
 
@@ -115,7 +120,7 @@ def build_ai_messages(results: List[Dict], target_name: str, resolved_ip: str) -
                 "baseline_recommendation": item["recommendation"],
             }
         )
-
+    # AI prompt 
     system_message = (
         "You are a cybersecurity teaching assistant. "
         "Explain port scan results in very simple language for a beginner. "
@@ -140,7 +145,7 @@ def build_ai_messages(results: List[Dict], target_name: str, resolved_ip: str) -
         {"role": "user", "content": user_message},
     ]
 
-
+# Generate simple report using the Hugging Face model
 def generate_ai_explanation(
     results: List[Dict],
     target_name: str,
@@ -167,7 +172,7 @@ def generate_ai_explanation(
 
     return completion.choices[0].message.content.strip()
 
-
+# Return either AI-generated report or fallback report
 def get_explanation_report(
     raw_results: List[Dict],
     target_name: str,
@@ -176,14 +181,17 @@ def get_explanation_report(
 ) -> Tuple[str, str, List[Dict]]:
     enriched_results = enrich_results(raw_results)
 
+    # Use the built-in report when no open ports are found
     if not enriched_results:
         report = build_summary(enriched_results, target_label=f"{target_name} ({resolved_ip})")
         return report, "fallback", enriched_results
 
+    # Skip AI when the user turns it off
     if not use_ai:
         report = build_summary(enriched_results, target_label=f"{target_name} ({resolved_ip})")
         return report, "fallback", enriched_results
 
+    # Fall back automatically if no token is available
     if not has_hf_token():
         report = build_summary(enriched_results, target_label=f"{target_name} ({resolved_ip})")
         return report, "fallback", enriched_results
@@ -196,5 +204,6 @@ def get_explanation_report(
         )
         return report, "ai", enriched_results
     except Exception:
+        # If the AI request fails, return built-in report 
         report = build_summary(enriched_results, target_label=f"{target_name} ({resolved_ip})")
         return report, "fallback", enriched_results
