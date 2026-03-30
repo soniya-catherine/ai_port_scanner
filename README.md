@@ -28,8 +28,8 @@ A GUI TCP port scanner that detects open ports, identifies common services, assi
 ## Installation Guide 
 
 ```bash
-git clone https://github.com/soniya-catherine/ai-port-scanner
-cd ai-port-scanner
+git clone https://github.com/soniya-catherine/ai_port_scanner
+cd ai_port_scanner
 ```
 
 **Windows**
